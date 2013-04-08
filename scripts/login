@@ -1,0 +1,3 @@
+set savehist=100
+set path = ( $PATH /usr/bin /usr/local/bin /usr/atria/bin )
+

@@ -1,0 +1,50 @@
+#! /usr/bin/perl
+#Author umesh pandey for recursive and avoid duplicate checkin
+#Date : 18-Sep-02
+$os= $ENV{'OS'};
+print $os;
+
+$CT = "cleartool";
+$DIALOG = "clearprompt";
+@OPT = @ARGV;
+
+$nco = @LISTFILE = `$CT lscheckout -r -cview -short`;
+
+if($nco == 0) {
+  $CTCOM = "$DIALOG proceed -prompt \"nothing to checkin\"";
+  system($CTCOM);
+  exit(0);
+}
+
+
+foreach $f (@LISTFILE) {
+  chomp($f);
+  if( -e $f ) {
+    if(system("$CT diff -option -status_only -pred $f") == 0 )
+    {
+      $CTCOM = "$CT uncheckout -rm $f";
+      system($CTCOM);
+    }
+  }
+}
+
+$nco = @LISTFILE = `$CT lscheckout -r -cview -short`;
+
+$CTCOM = "$DIALOG proceed -prompt \"$nco ; @LISTFILE\"";
+system($CTCOM);
+
+if( $nco > 0 ) {
+  $GUI_FLAG = $ENV{ATRIA_FORCE_GUI};
+  if ($GUI_FLAG) {
+    $CTCOM = "$DIALOG yes_no -prompt \"Do you want to change comment ?\"";
+    $status = system($CTCOM);
+    if ($status) { @OPT = "-nc"; }
+  }
+  $CTCOM = "$CT checkin @OPT @LISTFILE";
+  system($CTCOM);
+}
+else {
+  $CTCOM = "$DIALOG proceed -prompt \"nothing to checkin\"";
+  system($CTCOM);
+}
+exit (0);

@@ -1,0 +1,67 @@
+#!/usr/bin/perl -d 
+#Author .... : Umesh Pandey : ...............
+#Date : 03-Dec-02
+#This script can apply the given trigger over all the public mounted VOB
+$CT="/usr/atria/bin/cleartool";
+@PVOB = &getPvobs;
+my $count ;
+$UNIXPATH='/net/devvm/usr/local/SCMScripts/triggers/';
+$WINPATH='\\\\devvm\\SCMScripts\\triggers\\';
+system("clear") ;
+printf("\n.........******* TRIGGER ATTACHMENT PROGRAM ********........\n");
+printf("\nThis program will apply trigger over all the PUBLIC MOUNTED VOB\n");
+printf("If you face any problem write to umesh_c_pandey\@ril.com with all the error code\n");
+printf("\n.........**********************************........\n");
+printf("\nEnter the trigger script name : ");
+
+$TRIGGER=<STDIN>;
+chop($TRIGGER);
+
+$UNIXTR="$UNIXPATH$TRIGGER";
+#$winp=&conInWinPath($TRIGGER);
+$WINTR="$WINPATH$TRIGGER";
+
+printf("\nEnter the Trigger Name to Apply : ");
+my $TRNAME=<STDIN>;
+chop($TRNAME);
+printf("\nEnter the comment : ");
+my $comment=<STDIN>;
+chop($comment);
+for( $count =0 ; $count < scalar( @PVOB ); $count++ )
+{
+  
+  my $DIR = $PVOB[$count];
+  chop $DIR ;
+  chdir $DIR; 
+   
+  &appLable(qq<$CT mktrtype -replace -element -all -preop mklabel,rmlabel -nusers vobadm,root -execunix 'perl  $UNIXTR' -execwin 'ccperl $WINTR'   -c '$comment' $TRNAME>);
+
+ }
+
+ sub getPvobs
+ {
+
+      open(OUT ,">/tmp/tmp$$") || die("Could not open the file $!");
+	  print OUT	`cleartool lsvob | grep public | grep '^*' | cut -f2 -d ' '`  ; 
+	  close OUT;
+      open(PVOBSF , "/tmp/tmp$$") || die("Could  not open the file $!");  
+      @PVOBS = <PVOBSF> ;   
+      close PVOBSF ; 
+	  return @PVOBS;
+
+ }
+sub conInWinPath
+{
+
+  my @PATHCOMP =split(/\//, $_[0]);
+
+  my $PATH=join('\\', @PATHCOMP);
+
+  return $PATH;
+}
+
+sub appLable
+{
+  system("$_[0]  2>/dev/null");
+  die("Could'nt apply the trigger(check permission)$!")  if( $? != 0 );
+}  

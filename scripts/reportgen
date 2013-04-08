@@ -1,0 +1,367 @@
+#!/usr/bin/perl  
+#This program will be used to generate Report of clearCase Repository
+
+#-------------Author : Umesh Chandra Pandey : -----------------
+#     Created Date : 11-May-02 
+$CT  ="/usr/atria/bin/cleartool" ;
+$CLS ="/usr/local/bin/clear" ;
+$option="yes" ;
+$UID =`/usr/xpg4/bin/id -u -nr`;
+$DATE=`/usr/bin/date '+DATE: %m/%d/%y%n'`;
+$element="directory";
+my $Version ;
+my @VOBLIST ;
+my $vob = 0 ;
+my $Rdate =0;
+my $toDate=0; 
+my $reportOption ;
+my $STRING1;
+my $STRING2;
+my $STRING3;
+my $STRING4;
+my $STRING5;
+my $STRING6;
+my $STRING7;
+my $STRING8;
+my $STRING9;
+my $STRING10;
+my $fileExt = `date '+%d:%m:%H:%M'`;
+chop($fileExt);
+#$reportDir =$ENV{HOME};
+$reportDir ="/views/report";
+my $reportFileName;
+$genRepo ="y";
+while ( $genRepo eq "y" )
+{
+
+   $STRING1="All the added elements from specified date to specified date by each user";
+   $STRING2="All the added elements since yesterday  ";
+   $STRING3="All checked out elements ";
+   $STRING4="All checked in elements from specified date to specified date by each user ";
+   $STRING5="All the deleted elements from specified date to specified date ";
+   $STRING6="All merge Branch  and merge point of the branch    ";
+   $STRING7="All deleted  Branches                                   ";
+   $STRING8="All elements on given LABEL                            ";
+
+   system("$CLS");
+   printf("\n\n\n\n************* MENU FOR OPTION SELECTION**************************");
+   print("\t\n\n\n Select options to generate the reports \n\n\n");
+   printf("\n%d    %s",1,  $STRING1      );
+   printf("\n%d    %s",2,  $STRING2      );
+   printf("\n%d    %s",3,  $STRING3      );
+   printf("\n%d    %s",4,  $STRING4      );
+   printf("\n%d    %s",5,  $STRING5      );
+   printf("\n%d    %s",6,  $STRING6      );
+   printf("\n%d    %s",7,  $STRING7      );
+   printf("\n%d    %s",8,  $STRING8      );
+
+   
+   printf("\n\nEnter the options..(1,2,3,4,5,6,7,8)\n\n");
+   $reportOption = <STDIN>;
+   chop($reportOption);
+
+   if ( $reportOption eq     "1" )
+   {
+           &sub_fun1;
+   }
+   elsif ( $reportOption eq  "2" )
+   {
+           &sub_fun2;
+	
+   }
+   elsif ( $reportOption eq  "3" )
+   {
+           &sub_fun3;
+	
+   }
+   elsif ( $reportOption eq  "4" )
+   {
+           &sub_fun4;
+	
+   }
+   elsif ( $reportOption eq  "5" )
+   {
+           &sub_fun5;
+	
+   }
+   elsif ( $reportOption eq  "6" )
+   {
+           &sub_fun6;
+	
+   }
+   elsif ( $reportOption eq  "7" )
+   {
+           &sub_fun7;
+	
+   }
+   else
+   {
+           &sub_fun8;
+	
+   }
+   printf("\n\n\n\n\n\n%s","You want to generate more reports(y/n)");
+   $genRepo = <STDIN>;
+   chop($genRepo);
+   
+
+
+}
+
+ sub sub_fun1
+ {
+
+     printf("\nEnter  from date(DD-Month:26-Apr)\n");
+     $Rdate = <STDIN> ;
+	 chop($Rdate);
+	 &sub_validateFormat($Rdate);
+     printf("\nEnter to date(DD-Month:26-Apr)\n");
+     $toDate = <STDIN>;
+	 chop($toDate);
+	 &sub_validateFormat($toDate);
+     $Version ="/main/0";
+     &sub_ReportGen_head($UID,$Rdate,$DATE,$toDate,$STRING1,$Version);
+     printf("\nSelect the Vobs for report  : By Default it is for all public vob\n");  
+
+     printf("\nYou Want to select VOBS(yes/no)\n");
+	 $Uoption=<STDIN>;
+     chop($Uoption);
+    
+	 if ( $Uoption eq $option )
+	 {
+        
+	    @PVOBS = &sub_selectVOBS;
+	 }
+	 else
+	 {
+        @PVOBS = &sub_allPubVOBS; 
+
+	 }
+     &sub_genREPO($Rdate, $Version, $toDate, $reportOption);
+ }
+ 
+ sub sub_fun2
+ {
+   
+     printf("\nEnter Version for which you want to generate the report(Version:/main/11)\n");
+     $Version = <STDIN>;
+     chop($Version);
+     printf("\nSelect the Vobs for report  : By Default it is for all public vob\n");  
+
+     printf("\nYou Want to select VOBS(yes/no)\n");
+
+     &sub_ReportGen_head($UID,$Rdate,$DATE,$toDate,$STRING2,$Version);
+     
+	 $Uoption=<STDIN>;
+     chop($Uoption);
+    
+	 if ( $Uoption eq $option )
+	 {
+        
+	    @PVOBS = &sub_selectVOBS;
+	 }
+	 else
+	 {
+        @PVOBS = &sub_allPubVOBS; 
+
+	 }
+    
+     &sub_genREPO($Rdate, $Version, $toDate, $reportOption);
+
+ }
+ sub sub_fun3
+ { 
+     $Version ="CHECKEDOUT";
+
+     printf("\nSelect the Vobs for report  : By Default it is for all public vob\n");  
+
+     printf("\nYou Want to select VOBS(yes/no)\n");
+
+     &sub_ReportGen_head($UID,$Rdate,$DATE,$toDate,$STRING3,$Version);
+     
+	 $Uoption=<STDIN>;
+     chop($Uoption);
+    
+	 if ( $Uoption eq $option )
+	 {
+        
+	    @PVOBS = &sub_selectVOBS;
+	 }
+	 else
+	 {
+        @PVOBS = &sub_allPubVOBS; 
+
+	 }
+     
+     &sub_genREPO($Rdate, $Version, $toDate, $reportOption);
+
+ }
+ sub sub_fun4
+ { 
+
+     printf("\nEnter  from date(DD-Month:26-Apr)\n");
+     $Rdate = <STDIN> ;
+	 chop($Rdate);
+	 &sub_validateFormat($Rdate);
+     printf("\nEnter to date(DD-Month:26-Apr)\n");
+     $toDate = <STDIN>;
+	 chop($toDate);
+	 &sub_validateFormat($toDate);
+     $Version = "CHECKEDIN";
+     printf("\nSelect the Vobs for report  : By Default it is for all public vob\n");  
+
+     printf("\nYou Want to select VOBS(yes/no)\n");
+
+     &sub_ReportGen_head($UID,$Rdate,$DATE,$toDate,$STRING4,$Version);
+     
+	 $Uoption=<STDIN>;
+     chop($Uoption);
+    
+	 if ( $Uoption eq $option )
+	 {
+        
+	    @PVOBS = &sub_selectVOBS;
+	 }
+	 else
+	 {
+        @PVOBS = &sub_allPubVOBS; 
+
+	 }
+    
+     &sub_genREPO($Rdate, $Version, $toDate, $reportOption);
+ }
+ sub sub_fun5
+ { 
+
+   printf("NOT YET IMPLEMENTED ");
+ }
+ sub sub_fun6
+ { 
+
+   printf("NOT YET IMPLEMENTED ");
+ }
+ sub sub_fun7
+ { 
+
+   printf("NOT YET IMPLEMENTED ");
+ }
+ sub sub_fun8
+ { 
+ 
+   printf("\nEnter LABEL.......... \n");
+   $label = <STDIN>;
+   chop($label);
+   printf("\nSelect the Vobs for report  : By Default it is for all public vob\n");  
+
+   printf("\nYou Want to select VOBS(yes/no)\n");
+
+     
+	 $Uoption=<STDIN>;
+     chop($Uoption);
+    
+	 if ( $Uoption eq $option )
+	 {
+        
+	    @PVOBS = &sub_selectVOBS;
+	 }
+	 else
+	 {
+        @PVOBS = &sub_allPubVOBS; 
+
+	 }
+    
+	 $Version = $label ;
+     &sub_ReportGen_head($UID,$Rdate,$DATE,$toDate,$STRING8,$Version);
+
+     &sub_genREPO($Rdate, $Version, $toDate, $reportOption);
+
+ }
+ sub sub_ReportGen_head
+ {
+   
+    local($uid,$rdate,$date,$todate,$reportType,$version) = @_ ;
+    
+	$reportFileName = &get_ReportName($version);
+
+    open(OUTR , ">>$reportDir/$reportFileName$fileExt.doc");
+    printf OUTR ("\n\t ..... Report of ClearCase Repository .......\n\n\n");
+    printf OUTR ("\nReport Generator      : $uid \n");
+    printf OUTR ("\nReport Generated  $date  ");
+    printf OUTR ("\nReport Type   : $reportType \n\n");
+	printf OUTR ("\nVersion/Label : $version    \n\n");
+	if ( !($reportType eq $STRING2 || $reportType eq $STRING3 || $reportType eq $STRING8  || $reportType eq $STRING10 ))
+	{
+      printf OUTR ("\nFROM  date  : $rdate     TO date  :$todate\n\n");
+	}  
+    printf OUTR ("\n\n====================================================\n");
+    printf OUTR ("\nVOBS/ELEMENTS..........                               \n");       
+    printf OUTR ("\n\n****************************************************\n");
+
+ }
+ sub sub_selectVOBS
+ {
+   
+     my $selectVOB="yes";
+
+     while ( $selectVOB eq  $Uoption)
+     {
+  
+       system("$CT lsvob -short");
+       $vobs = <STDIN> ;
+       @VOBLIST[$vob] = $vobs; 
+       $vob++;
+       printf("You Want to select MORE VOB(yes/no)\n");
+       $Uoption=<STDIN>;
+       chop($Uoption);
+  
+     }
+	 return @VOBLIST;
+  }	 
+ sub sub_allPubVOBS
+ {
+
+  
+	  open(OUT ,">/tmp/tmp$$") || die("Could not open the file $!");
+	  print OUT	`cleartool lsvob | grep public | grep '^*' | cut -f2 -d ' '`  ; 
+	  close OUT;
+      open(PVOBSF , "/tmp/tmp$$") || die("Could  not open the file $!");  
+      @PVOBS = <PVOBSF> ;   
+      close PVOBSF ; 
+	  return @PVOBS;
+  }	  
+
+  sub sub_genREPO
+  {
+    
+      local($rdate, $version, $todate, $reportoption ) = @_;
+      for($i =0 ; $i < scalar(@PVOBS) ; $i++)
+	  {
+	   chop($PVOBS[$i]);
+       printf OUTR "\n\n$PVOBS[$i] \n\n";
+       print OUTR `./format   $PVOBS[$i] $rdate $version $todate $reportoption`;
+
+	   die("Given data $PVOBS[$i] is wrong .. Try again $!")   if ( $? != 0 ) ;
+	    
+
+	   printf OUTR "\n=============================================================\n";
+      }	
+
+   printf("\nGenerated report is stored at $reportDir/$reportFileName$fileExt.doc ");
+    
+       close OUTR ;
+
+  }
+ sub sub_validateFormat
+ {
+  
+    local($date) = @_;
+	die("Given date ($date) is not in correct format $!")
+	if ( $date !~ /^[0-9]{1,2}-[JFMASOND][a-z]{2}$/ ) ;
+ }	
+
+ sub get_ReportName
+ {
+   
+  local($Ver) = @_;
+  return 
+  $Ver =~ /main\/0/  ? "ADDED" : $Ver =~/main/ ? "Since_Yesterday" : $Ver ;
+ }  

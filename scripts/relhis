@@ -1,0 +1,27 @@
+#!/usr/bin/perl 
+
+my @allpub;
+  @allpub = &sub_allPubVOBS;
+  for ($i =0 ; $i < scalar(@allpub) ;$i++)
+  {
+    chop($allpub[$i]);
+    $lb=`./utils/relsupp  $allpub[$i]`;
+    if ($lb =~/\(/ )
+    {
+      printf("%s",$lb);
+    }
+ } 
+
+sub sub_allPubVOBS
+ {
+
+
+   open(OUT ,">/tmp/tmp$$") || die("Could not open the file $!");
+   print OUT     `cleartool lsvob | grep public | grep '^*' | cut -f2 -d ' '`;
+    close OUT;
+    open(PVOBSF , "/tmp/tmp$$") || die("Could  not open the file $!");
+   @PVOBS = <PVOBSF> ;
+   close PVOBSF ;
+   return @PVOBS;
+  }
+

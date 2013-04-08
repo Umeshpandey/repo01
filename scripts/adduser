@@ -1,0 +1,104 @@
+#!/usr/bin/perl  
+#This program can be used to add a user in a sun solaris machine who willing to access ClearCase thru SAMBA
+#...........Author "Umesh Chandra Pandey" Created on 10-May-02
+
+$addU = "/usr/sbin/useradd" ;
+$addS = "/usr/local/samba/bin/smbpasswd" ;
+$UID  = `/usr/xpg4/bin/id -u -r` ;
+$option = "Yes";
+$new  = "Yes";
+$CLS  ="/usr/local/bin/clear";
+$NEWUID="/vobs/rm/utils";
+$NTSERVER='10.8.113.25';
+$LOGIN='root';
+$passwd=12345;
+$genericGroup='ril';
+$comment="ClearCase Users";
+  while( $new eq $option )  
+  {
+    system("$CLS");
+    printf("\nEnter user Name[for comment] : ");
+	$userName = <STDIN>;
+    chop($userName);
+	if ( $userName eq "" )
+	{
+	  printf("User Name Not Entered \n");
+	  exit 0;
+	}  
+	
+    printf("Enter Login ID of The User  :  ");
+	$myUser   = <STDIN> ;
+	chop($myUser);
+	
+
+	printf("Enter primary Group Name  :  ");
+	$group = <STDIN> ;
+	chop($group);
+    $uuid=&sub_getuid;
+#	&addUseron_NT($myUser,$passwd,$userName,$group,$comment);
+    if ( $UID != 0)
+	{
+
+	 printf(" Sorry ...You Dont Have permission to Add user \n");
+	 exit 0;
+	
+	}
+
+        chop($uuid);
+
+	system("$addU -u $uuid -g  $group   -d /home2/$myUser -s /usr/bin/csh -c '$userName'  $myUser 2>nul ");
+	
+   die ("\n Could'nt create the login ID ($myUser may be in Use) $!\n") if ( $? != 0 );
+
+   printf("\nUser Login Id : %s\nUser Primary group : %s\n", $myUser, $group);
+	
+	system("mkdir /home2/$myUser");
+	system("cp ./login /home2/$myUser/.cshrc");
+	system("chown -R $myUser:$group /home2/$myUser");
+	printf(" Password Setting of User Login\n");
+	
+	system("passwd $myUser");
+	
+	printf(" User Adding in SAMBA .. Provide Password\n");
+	
+	system("$addS -a $myUser");
+    	
+	&addUseron_NT($myUser,$passwd,$userName,$group,$comment);
+	printf("You want another user to add (Yes/No)\n");
+	$option = <STDIN> ;
+	chop($option);
+ }
+  sub sub_getuid
+  {
+    return  `$NEWUID/newuid` ;	
+  }
+
+   sub addUseron_NT
+  {
+       &EXECNUL(qq<rsh -l $LOGIN $NTSERVER net user /y $_[0] $_[1] /add  /domain > ); 
+
+
+       &EXECNUL(qq<rsh -l $LOGIN $NTSERVER net user /y $_[0]  /fullname:$_[2]  /domain > ); 
+
+       &EXECNUL(qq<rsh -l $LOGIN $NTSERVER net user /y $_[0]  /comment:$_[4] /domain > ); 
+
+ 
+        &EXECNUL(qq<rsh -l $LOGIN $NTSERVER net group /y $_[3] $_[0] /add /domain  >);
+
+       &EXECNUL(qq<rsh -l $LOGIN $NTSERVER net group /y $genericGroup $_[0] /add /domain >);
+	
+  }
+
+  sub EXECNUL {
+  
+#  $myResult = system("$_[0]  2>nul");
+   $myResult = system("$_[0]");
+  return $myResult ;	
+  }
+
+  sub NOTEXISTUSER
+  {
+
+     my $result = &EXECNUL(qq<rsh -l $LOGIN $NTSERVER net user /y $_[0]> );
+	 return $result ;
+  }

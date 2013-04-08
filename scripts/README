@@ -1,0 +1,27 @@
+
+Usage Guide line of All the Scripts available in the utils directory.........
+
+
+adduser :
+
+This scripts will add users in the machines.Any who have permission want to add ClearCase users can use this scripts.
+When you want to add any user just run the script and answer all the ask questions.
+
+
+
+reportgen:
+
+To Get the report of ClearCase  Repository, the user has to run reportgen program. This program will ask the some questions, which user has to provide. The format of the date is given in question please see that and gives date according to that only.
+
+This script is so far able to generate the report of all the added file since the given date and on a particular date.In this script the format of the VERSION for which user want to generate the report is same as CLEARCASE version format.
+
+For example : 0 version of the file on main branch can be written as /main/0 and LATEST on main branch /main/LATEST etc..
+
+recuci :
+
+This scripts is able to make recursive checkin. It does'nt allow to checkin unchange file and it will do undo-co on that.
+
+relhis :
+
+This scripts is for generating release history of the CC repository.
+

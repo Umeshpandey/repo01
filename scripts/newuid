@@ -1,0 +1,4 @@
+#!/usr/bin/sh 
+pt=`tail -1 /etc/passwd | awk -F: '{print $3}'`
+st=`expr $pt + 1`
+echo $st

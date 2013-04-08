@@ -1,0 +1,159 @@
+#!/usr/bin/sh   
+#This program is used by report generator to print the data which is available
+# repository
+
+#Created by : Umesh Chandra Pandey :..........
+#Created date : 11-may-02
+
+     if [ "$5" -eq 1 ]
+        then
+          grp=`echo $1 | awk -F/ '{ print $3 }'`
+        if [ "$grp" = "fraudmgmt" ]
+           then
+             grpID=188
+        elif [ "$grp" = "ebiz" ]
+           then
+             grpID=182
+		elif [ "$grp" = "mediation" ]
+		   then
+		     grpID=257
+		elif [ "$grp" = "business_process" ]
+		   then
+		     grpID=171
+		elif [ "$grp" = "ccadmin" ]
+		   then
+		     grpID=179
+			         
+        else
+          grpID=`grep '^'$grp'' /etc/group  | awk -F: '{print $3 }'`
+
+        fi
+        if [ $grpID -ne "" ]  
+           then 
+            for i in `grep -v '^#' /etc/passwd | \
+		    grep $grpID | awk  -F: ' { print $1 }'` 
+            do
+              cleartool find $1  -nxname -user $i -type f \
+			  -version  "{brtype(main) && created_since($2) \
+			  && ( ! created_since($4) )  &&(version($3))}" \
+              -print  2>/dev/null 
+
+              if [ $? != 0 ]
+                 then 
+                  exit 1
+			  fi	  
+
+               cleartool find $1  -nxname -user $i -type f -version \
+			   "{brtype(main)  && created_since($2) && \
+			   ( ! created_since($4) )  &&(version($3))}"  -print > /tmp/info$$
+
+              if [  -s /tmp/info$$ ]
+                 then
+                 echo "\t\n\nCreated by...... :      $i  \n\n" 
+                 rm -fR /tmp/info$$
+              fi 	
+
+          done
+
+       fi
+     elif [ "$5" -eq 2 ]
+        then
+          cleartool find $1 -nxname -type f -version 
+		  "{brtype(main) &&  created_since(yesterday) \
+		  && (version($3))}" -print 2>/dev/null
+
+        if [ $? != 0 ]
+           then 
+               exit 1
+        fi	
+
+     elif [ "$5" -eq 3 ]
+         then
+          cleartool lsco -recurse -fmt "%d\t%Lu\t%En\n\tPredecessor: \
+          %[version_predecessor]p\n\tHost: %h\n\tStatus: \
+		  %Rf\n\tElement type: %[type]p\n" $1 2>/dev/null
+
+         if [ $? != 0 ]
+           then 
+             exit 1
+         fi	
+	
+      elif [ "$5" -eq 4 ]
+         then
+          grp=`echo $1 | awk -F/ '{ print $3 }'`
+          if [ "$grp" = "fraudmgmt" ]
+             then
+               grpID=188
+ 
+          elif [ "$grp" = "ebiz" ]
+              then
+               grpID=182
+		  elif [ "$grp" = "mediation" ]
+		      then
+		       grpID=257
+		   elif [ "$grp" = "business_process" ]
+		   then
+		       grpID=171
+		   elif [ "$grp" = "ccadmin" ]
+		   then
+		     grpID=179
+
+           else
+             grpID=`grep '^'$grp'' /etc/group  | awk -F: '{print $3 }'`
+           fi
+
+        if [ $grpID -ne "" ]  
+           then 
+            for i in `grep -v '^#' /etc/passwd | grep $grpID | \
+			awk  -F: ' { print $1 }'` 
+            do 
+   
+             cleartool find $1 -nxn -user $i -type f \
+			 -version "{brtype(main) && created_since($2) && \
+			 ( ! created_since($4) )  &&(version(/main/LATEST)) \
+			 && (!version (/main/0)) && (!version (/main/1)) }" \
+			 -print 2>/dev/null
+
+             if [ $? != 0 ] ; then 
+			     exit 1  
+			 fi
+
+                cleartool find $1 -nxn -user $i -type f \
+			    -version "{brtype(main) && created_since($2) && \
+			    ( ! created_since($4) )  &&(version(/main/LATEST)) \
+			    && (!version (/main/0)) && (!version (/main/1)) }" \
+			    -print >/tmp/info$$
+
+              if [  -s /tmp/info$$ ]
+                 then
+                  echo "\t\n\nCreated by...... :      $i  \n\n" 
+                  rm -fR /tmp/info$$
+              fi 	
+
+          done
+         fi
+     elif [ "$5" -eq 8 ]
+       then
+
+         cleartool find $1  -type f -version "lbtype($3)" -nxn \
+		 -print 2>/dev/null
+         if [ $? != 0 ]
+           then 
+             exit 1
+         fi	
+     elif [ "$5" -eq 11 ]
+         then
+           cleartool find $1 -type f -nxn -user $6 \
+		   -version "{brtype(main) &&  created_since($2) && \
+		   ( ! created_since($4) )  &&(version($3))}" \
+		   -print 2>/dev/null
+
+         if [ $? != 0 ]
+           then 
+            exit 1
+
+         fi
+
+     fi
+
+

@@ -1,0 +1,71 @@
+#!/usr/bin/perl  
+
+$CT="/usr/atria/bin/cleartool";
+$FIND="/usr/bin/find";
+  my $elt =  $ARGV[0];
+  my @eltList;
+  &usage  if( $elt eq "" );
+  &usage  if(scalar (@ARGV) < 2 );
+  &perform_op(@ARGV);
+
+  sub usage
+  {
+   die("\nUsage: <cmd> <lock/unlock> <files/diretories> ......\n");
+  }
+
+  sub perform_op
+  {
+   
+    my @localArray;
+	@localArray =  @_ ;
+	chomp $_[0] ;
+    if($_[0] eq  "lock" || $_[0] eq "unlock"  )
+	{
+       for($i =1; $i <scalar @localArray ; $i++) 
+	   {
+        &do_op( $localArray[$i], $_[0]);
+	   }	
+	}
+    else
+	{
+      &usage;    
+	}
+	
+  }
+ 
+ sub do_op
+ {
+   printf("\n The $_[1]ing has started ......\n");
+   if( -f $_[0] )
+   {
+        &execut(qq<$CT  $_[1] $_[0]>);
+   }
+   else
+   {
+   
+    #chdir $_[0];
+	my $PATH = join("",'./' , $_[0] );
+    system("$FIND $PATH -print | grep -v ./lost+found  >/tmp/tmp$$");
+	open(FILEHT , "</tmp/tmp$$" );
+    @eltList=<FILEHT>;
+	close(FILEHT);
+	system("rm /tmp/tmp$$");
+	for($i=0; $i < scalar @eltList ; $i++)
+	{
+	    chop $eltList[$i];
+	    if( '$eltList[$i]' eq "."  )
+		{
+            # continue{}
+		}
+		else{ &execut(qq<$CT $_[1] '$eltList[$i]'>); }
+		  
+	}
+   }
+   printf("\n Hey  $_[1]ing Done ......\n");
+        
+ }
+ sub execut
+ {
+  return system("$_[0] 2>/dev/null");
+ }
+  

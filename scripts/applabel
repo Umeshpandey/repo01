@@ -1,0 +1,381 @@
+#!/usr/bin/perl     
+#Author : Umesh Pandey 
+#Desc   : This script can be used to apply  label on a file/directory and its
+#parent directory
+
+use strict;
+use Spreadsheet::ParseExcel;
+use Spreadsheet::WriteExcel;
+use Data::Dumper;
+use Getopt::Regex;
+
+
+my $CT="/usr/atria/bin/cleartool";
+my $ELEMENT;
+my $GIVENLABEL;
+my $APPLIEDLABEL;
+my $applyAllFlag="no";
+my @ELTLIST;
+my @PARAM = @ARGV;
+my $COMMENT;
+my $GIVENLABELFLAG;
+my @PATHCOMP;
+my $FLAG;
+my $TEMPITEM;
+my $TEMPLABEL;
+my $countVar;
+my $GIVENDIR;
+my %opts =(); 
+my $ELEMENTLIST ;
+my $VOBNAME;
+
+ Getopt::Regex::GetOptions(\@ARGV, ['-f',\$ELEMENTLIST,1],
+                           ['-l',\$GIVENLABEL,1],
+						   ['-F',\$ELEMENT,1]);
+						   
+ &validate_arg($GIVENLABEL,$ELEMENT,$ELEMENTLIST);
+ &check_perm;
+ chomp($GIVENLABEL);chomp($ELEMENT);chomp($ELEMENTLIST);
+ if( scalar(@PARAM) < 3 )
+ {
+    &usage;
+ }
+ else
+ {
+	if( $ELEMENTLIST ne "" ) 
+    {
+      if( -f $ELEMENTLIST && -r $ELEMENTLIST )
+	  {
+	    @ELTLIST = &format_file($ELEMENTLIST);
+	  }
+	  else
+	   {
+	     die("\nFile :$ELEMENTLIST either not readable or does not exist\n");
+	   }	 
+		  
+   }
+   
+   if( $ELEMENT ne "" ) 
+   {
+     die("\nProvide absolute path for file 
+     (/vobs/rm/utils/readme & FILE NAME REQUIRED 
+     FIRST THEN LABEL NAME)  \n") if( $ELEMENT !~ /\// );
+     &check_Location($ELEMENT);
+   }
+
+ }
+
+ printf("\nPlease Enter the comment\n ");
+ $COMMENT = <STDIN>;
+
+ die("\nComment is not proper/given  ") if ( $COMMENT eq "" ); 
+
+ $GIVENLABELFLAG = `$CT lstype -kind lbtype | grep $GIVENLABEL`;
+ if ( $GIVENLABELFLAG !~ $GIVENLABEL )
+ {
+    system("$CT mklbtype -glo -sha -c '$COMMENT'  $GIVENLABEL 2>/dev/null");
+    die("Could'nt create the label $GIVENLABEL type permission required  ")
+	if ( $? != 0);
+
+ }
+
+if( $ELEMENT ne "" )
+{
+  &applabel($ELEMENT,$GIVENLABEL);
+  printf("\n .. Given Label has been applied....\n");
+  printf("\n .. Modifying The Release History ..\n");
+  &mod_rel_his($COMMENT,$GIVENLABEL);
+  printf("\nHey Done ................\n");
+}# TO Apply labels on the given File/Directories
+
+
+
+if( scalar(@ELTLIST) > 0 )
+ {
+   for(my $count=0; $count < scalar(@ELTLIST) ; $count++)
+   {
+    &applabel($ELTLIST[$count] ,$GIVENLABEL);
+
+   }
+   printf("\n .. Given Label has been applied....\n");
+   printf("\n .. Modifying The Release History ..\n");
+   &mod_rel_his($COMMENT,$GIVENLABEL);
+   printf("\nHey Done ................\n");
+
+} # TO Apply label on the given elements which are in files
+
+#Below code can start labeling 
+sub applabel
+{
+ my $ELEMENT = $_[0];
+ my $GIVENLABEL    = $_[1];
+ my $PWDDIR;
+ my @TEMPPATHCOMP ;
+
+ chomp($ELEMENT);
+
+ @PATHCOMP = split(/\// , $ELEMENT);
+ for(my $count=0;$count < scalar(@PATHCOMP) -1 ; $count++)
+ {
+    $TEMPPATHCOMP[$count] = $PATHCOMP[$count];
+ }
+ 
+ $PWDDIR = join('/' , @TEMPPATHCOMP );
+
+ @PATHCOMP = reverse @PATHCOMP; 
+
+ if( -e "$ELEMENT" || -B "$ELEMENT" || -f "$ELEMENT" )
+   {
+    chomp($PWDDIR);
+    chdir $PWDDIR ; # To go to correct Location 
+    $APPLIEDLABEL=&checklabel($PATHCOMP[0],$GIVENLABEL);
+
+	chomp($APPLIEDLABEL);
+
+    if( $APPLIEDLABEL !~ $GIVENLABEL   )
+    {
+      system("$CT mklabel -c '$COMMENT' $GIVENLABEL '$ELEMENT' 2>/dev/null  ");
+	  my $choice = &error_check( $ELEMENT , $GIVENLABEL, $?);
+	  if ( $choice =~ "y" )
+	  {
+      system("$CT mklabel -replace -c '$COMMENT' $GIVENLABEL '$ELEMENT' 2>/dev/null  ");
+
+      die ("\n Could Not apply the label ... Try Manually ....") if( $? !=0 );
+	  printf("\nLabel applied on the given file ..... "); 
+
+	  }
+    }
+	else
+	{
+	printf("\nLabel is already on the given element.....\n"); 
+	}
+  }  #The end of if block  
+  elsif( -d "$ELEMENT" && -r "$ELEMENT" )
+  {
+    chdir $ELEMENT ; chdir '..' ;
+    $APPLIEDLABEL=&checklabel($ELEMENT,$GIVENLABEL);
+
+    chomp($APPLIEDLABEL);
+    if( $APPLIEDLABEL !~  $GIVENLABEL  )
+    {
+     system("$CT mklabel -recurse -c '$COMMENT' $GIVENLABEL '$ELEMENT' 2>/dev/null  ");
+	 my $choice = &error_check( $ELEMENT , $GIVENLABEL, $?);
+	 if ( $choice =~ "y" )
+	 {
+       system("$CT mklabel -replace -recurse -c '$COMMENT' $GIVENLABEL '$ELEMENT' 2>/dev/null ");
+
+       die ("\n Could Not apply the label ... Try Manually ....") if( $? !=0 );
+	   printf("\nLabel applied on the given element ..... "); 
+
+	 } 
+   }
+   else
+    {
+	  printf("\nLabel is already on the given element.....\n"); 
+
+
+	}
+   
+ } #The end of else block  
+ else
+ {
+  die("\nElement : $ELEMENT either not readable or does not exist\n");
+
+ }
+ my $VOBCOUNT;
+ while ( $PATHCOMP[++$VOBCOUNT] ne "vobs" )
+ {
+    chdir '..'; 
+#	if( &cc_object($PATHCOMP[$VOBCOUNT]) != 0)
+
+	
+     $APPLIEDLABEL = &checklabel_up( $PATHCOMP[$VOBCOUNT], $GIVENLABEL);
+	 if( $applyAllFlag eq "yes" || $applyAllFlag eq "no" )
+	 {
+	
+     chomp($APPLIEDLABEL);
+     if( $APPLIEDLABEL !~ $GIVENLABEL  )
+     {
+      system("$CT mklabel -c '$COMMENT' $GIVENLABEL '$PATHCOMP[$VOBCOUNT]' 2>/dev/null ");
+	  my $choice = &error_check($PATHCOMP[$VOBCOUNT] , $GIVENLABEL, $?);
+	  if ( $choice =~ "y" )
+	  {
+         system("$CT mklabel -replace  -c '$COMMENT' $GIVENLABEL '$PATHCOMP[$VOBCOUNT]' 2>/dev/null ");
+
+         die ("\n Could Not apply the label ... Try Manually ....") 
+		 if( $? !=0 );
+	     printf("\nLabel applied on the given element ..... "); 
+
+      }
+     }	
+     else
+     {
+        printf("\nThis Given Label is already on $PATHCOMP[$VOBCOUNT]\n"); 
+        printf("\nYou want to replace it[All,no,yes] default NO\n"); 
+		
+        $applyAllFlag = <STDIN>;
+        chop($applyAllFlag);
+		$FLAG = $applyAllFlag; 
+        if( $FLAG eq "yes" || $FLAG eq "All" )
+        {
+           system("$CT mklabel -replace -c '$COMMENT' $GIVENLABEL '$PATHCOMP[$VOBCOUNT]' 2>/dev/null");
+	       die("Could'nt replace the label  ") if ( $? != 0 );
+
+           printf("\nLabel has been replaced\n"); 
+        }
+		else
+		{
+         $applyAllFlag = "no" ;
+
+		}
+      }
+     }
+     elsif ( $applyAllFlag eq "All" )
+     {
+      chomp($APPLIEDLABEL);
+      if( $APPLIEDLABEL !~ $GIVENLABEL  ) 
+	  #This check if the given element doesnot have the LABEL
+
+	  {
+       system("$CT mklabel  -c '$COMMENT' $GIVENLABEL '$PATHCOMP[$VOBCOUNT]' 2>/dev/null");
+	   printf("\nNew Label has been applied on the element ($PATHCOMP[$VOBCOUNT])\n")
+	   if( $? == 0);
+	  }
+	  else
+	  {
+       system("$CT mklabel -replace -c '$COMMENT' $GIVENLABEL '$PATHCOMP[$VOBCOUNT]' 2>/dev/null");
+	   die("Could'nt replace the label  ") if ( $? != 0 );
+	  }  
+     }
+   #printf("\n Hey  $PATHCOMP[$VOBCOUNT] not a ClearCase Object\n");
+
+  }
+ } # End of applabel function
+  
+sub checklabel
+ {
+   ($TEMPITEM , $TEMPLABEL) = @_;
+    return `$CT desc -alabel -all '$TEMPITEM'@@/main/LATEST | grep $TEMPLABEL `;
+ } 
+  
+sub checklabel_up
+ {
+   ($TEMPITEM , $TEMPLABEL) = @_;
+   return  `$CT desc -alabel -all  '$TEMPITEM' | grep  $TEMPLABEL `;
+ } 
+
+sub cc_object
+{
+  
+  system("$CT ls '$_[0]' 1>/dev/null 2>/dev/null  ");
+  return  $?; 
+}  
+  
+sub usage
+{
+
+  system("clear");
+  printf("\n*************LABEL ATTACHMENT PROGRAM**********************\n");
+  printf("\nOnly VobAdm and Root are allowed to apply the label .......\n");
+  print"\nUSAGE:applabel
+  [-f <FILENAME Containing List of List of elements to be labeled]
+  [-F <FILENAME/DIRECTORY WITH ABSOLUTE PATH>                    ]
+  -l  <LABELNAME> \n" ;
+
+  print"\nUSAGE:Always run this program from parent directory of the element\n";
+  die "If you face any problem while execution write with error log to 
+  umesh_c_pandey\@ril.com\n";
+  printf("\n***********************************************************\n");
+
+}
+
+sub check_Location
+{
+
+ my $ELEMENT = $_[0] ;
+ my $PWD =`pwd` ;
+ chop $PWD;
+ my @VARS = split(/\// , $ELEMENT );
+ my @VARSTEMP;
+   for($countVar =0 ; $countVar < scalar(@VARS) -1  ; $countVar++)
+   {
+
+     $VARSTEMP[$countVar] = $VARS[$countVar];
+
+   }
+
+   $GIVENDIR = join('/' , @VARSTEMP );
+   $PWD eq $GIVENDIR ? return 0 : &usage ; 
+}
+
+sub check_perm
+{
+
+  my $UID=getpwuid($<);
+  if( $UID eq "vobadm" || $UID eq "root" )
+  {
+    printf("\nLabeling started..............................\n");
+
+  }
+  else
+  {
+
+    die("\nYou can not perform the action (root/vobadm allowed to do that)...\n\n");
+  }	
+}
+
+sub validate_arg
+{
+
+  chomp($_[0]);
+  chomp($_[1]); chomp($_[2]);;
+  $_[0] eq ""  ? &usage : ( $_[1] ne "" ) || ( $_[2] ne "" ) ? return 0 : &usage; 
+
+}
+
+sub mod_rel_his
+{
+ printf("\nNOT YET IMPLEMENTED\n");
+
+  
+}
+
+sub format_file
+{
+  my $ELEMENTLIST = $_[0];
+  chomp($ELEMENTLIST);
+  printf("\nEnter the VOB name ....  :  ");
+  $VOBNAME = <STDIN> ;
+  chop($VOBNAME);
+
+  die("\nCan not proceed .... No Vob name given \n") if( $VOBNAME eq "");
+  my @ELEMENTS ;
+  my $count ;
+  open(FILE , "+<$ELEMENTLIST");
+  
+  while( <FILE> )
+  {
+    chomp;
+    s/^./\/vobs\/$VOBNAME/g ; 
+    $ELEMENTS[$count++]= $_ ;
+  }
+  close FILE;
+  return @ELEMENTS;
+}
+
+sub error_check
+ {
+  my $ELEMENT = $_[0];
+  my $GIVENLABEL = $_[1];
+  my $ERROR = $_[2];
+  my $choice;
+	  if( $ERROR !=0 )
+	  {
+	    printf("\nDo you want to move the label because ( some of the Versions
+	    of the file: $ELEMENT already has $GIVENLABEL label )
+	    from previous version to Latest(y/n) : ");
+	    $choice = <STDIN>;
+	    chop($choice);
+	  }
+    return $choice ;
+  }	

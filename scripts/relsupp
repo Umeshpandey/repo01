@@ -1,0 +1,5 @@
+#!/usr/bin/sh 
+tmcomp=$1
+comp=`echo $tmcomp | awk -F/ '{print $3}'`
+cleartool  desc -fmt "\nComponents :$comp Lables :%l\t Comments %c\n" $1
+
