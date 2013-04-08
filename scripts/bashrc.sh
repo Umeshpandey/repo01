@@ -84,7 +84,7 @@ alias lspwd='stv' ;
 
 stv()
 {
- viewname=""
+ viewname="Umesh_pandey"
  cleartool setview  $viewname #2>/dev/null
 }
 #lspwd  
